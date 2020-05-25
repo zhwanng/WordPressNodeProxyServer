@@ -15,7 +15,34 @@ router.post('/post', function (req, res, next) {
     var u = domain + "/xmlrpc.php";
     // console.log(reqBody);
 
-    sendRequest(req, res, u, reqBody);
+    redirectToWP(u,reqBody,function(error, body){
+        console.log(body);
+        var xml2json = fxp.parse(body);
+        if (xml2json.methodResponse.fault) {
+            var mbr = xml2json.methodResponse.fault.value.struct.member;
+            var errCode = mbr[0].value.int;
+            var errString = mbr[1].value.string;
+            console.log("wordpress响应出错内: " + errString + ", code = " + errCode);
+            res.json({
+                code: errCode,
+                message: errString
+            });
+        } else if (xml2json.methodResponse.params) {
+            var resString = xml2json.methodResponse.params.param.value.string;
+            console.log("wordpress响应正常");
+            console.log(resString);
+            res.json({
+                code: 200,
+                data: {
+                    "articleId": resString
+                },
+                message: ""
+            });
+        } else {
+            console.log(xml2json);
+            res.json(errorUtils.internalServerErr());
+        }
+    });
 });
 
 //修改更新文章
@@ -25,16 +52,7 @@ router.post("/update", function (req, res, next) {
     var reqBody = toWPXml.coverToXmlForEditPost(req.body);
     reqBody = replaceUnusedChar(reqBody);
 
-    request({
-        url: u,
-        method: "POST",
-        headers: {
-            "Accept": "*/*",
-            "content-type": "text/xml",
-            "User-Agent": "nodejs-xmlrpc-1.0"
-        },
-        body: reqBody
-    }, function (error, response, body) {
+    redirectToWP(u,reqBody,function(error, body){
         console.log(body);
         // <?xml version="1.0" encoding="UTF-8"?>
         // <methodResponse>
@@ -69,43 +87,18 @@ router.post("/update", function (req, res, next) {
     });
 });
 
-function sendRequest(req, res, u, reqBody) {
+function redirectToWP(path,reqBody,callback){
     request({
-        url: u,
+        url: path,
         method: "POST",
         headers: {
             "Accept": "*/*",
             "content-type": "text/xml",
-            "User-Agent": "nodejs-xmlrpc-1.0"
+            "User-Agent": "nodejs-proxy-xmlrpc"
         },
         body: reqBody
-    }, function (error, response, body) {
-        console.log(body);
-        var xml2json = fxp.parse(body);
-        if (xml2json.methodResponse.fault) {
-            var mbr = xml2json.methodResponse.fault.value.struct.member;
-            var errCode = mbr[0].value.int;
-            var errString = mbr[1].value.string;
-            console.log("wordpress响应出错内: " + errString + ", code = " + errCode);
-            res.json({
-                code: errCode,
-                message: errString
-            });
-        } else if (xml2json.methodResponse.params) {
-            var resString = xml2json.methodResponse.params.param.value.string;
-            console.log("wordpress响应正常");
-            console.log(resString);
-            res.json({
-                code: 200,
-                data: {
-                    "articleId": resString
-                },
-                message: ""
-            });
-        } else {
-            console.log(xml2json);
-            res.json(errorUtils.internalServerErr());
-        }
+    },function (error, response, body) {
+        callback(error,body);
     });
 }
 
@@ -130,17 +123,7 @@ router.post("/uploadImg", function (req, res, next) {
     // console.log(reqBody);
 
     var u = domain + "/xmlrpc.php";
-    request({
-        url: u,
-        method: "POST",
-        headers: {
-            // "Accept-Encoding":"gzip",
-            "Accept": "*/*",
-            "content-type": "text/xml",
-            "User-Agent": "nodejs-xmlrpc-1.0"
-        },
-        body: reqBody
-    }, function (error, response, body) {
+    redirectToWP(u,reqBody,function(error, body){
         // console.log(body);
         var xml2json = fxp.parse(body);
         if (xml2json.methodResponse.fault) {

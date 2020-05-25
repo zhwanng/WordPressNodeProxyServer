@@ -19,7 +19,7 @@
 <?xml version="1.0"?>
 <methodCall>
 	<methodName>
-		wp.getPost
+		wp.deletePost
 	</methodName>
 	<params>
 		<param>
