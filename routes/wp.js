@@ -6,6 +6,7 @@ var errorUtils = require("../utils/errorUtils");
 var uuid = require('uuid');
 var router = express.Router();
 
+//发布文章
 router.post('/post', function (req, res, next) {
     console.log(req.body);
     var domain = req.body.domain;
@@ -17,6 +18,7 @@ router.post('/post', function (req, res, next) {
     sendRequest(req, res, u, reqBody);
 });
 
+//修改更新文章
 router.post("/update", function (req, res, next) {
     var domain = req.body.domain;
     var u = domain + "/xmlrpc.php";
